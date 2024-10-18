@@ -1,0 +1,93 @@
+---
+title: "DA5020.A2.Chunsheng.Fang"
+output: 
+  pdf_document: default
+  html_document: default
+date: "2024-09-16"
+---
+
+
+```{r}
+# Set CRAN mirror
+options(repos = c(CRAN = "https://cloud.r-project.org/"))
+
+if (!require(ggplot2)) install.packages("ggplot2")
+if (!require(dplyr)) install.packages("dplyr")
+
+library(ggplot2)
+library(dplyr)
+
+#problem 1
+library(ggplot2)
+data(msleep)
+dim(msleep)
+head(msleep)
+summary(msleep)
+colSums(is.na(msleep))
+cat("The msleep dataset contains", dim(msleep)[1], "rows and", dim(msleep)[2], "columns.\n")
+cat("Column types and a brief overview of the data:\n")
+str(msleep)
+cat("\nSummary statistics and missing values:\n")
+summary(msleep)
+
+
+# Problem 2
+
+data(msleep)
+
+vore_counts <- table(msleep$vore)
+vore_proportions <- prop.table(vore_counts)
+vore_percentages <- vore_proportions * 100
+
+vore_data <- data.frame(
+  category = names(vore_percentages),
+  percentage = vore_percentages
+)
+
+print(vore_data)
+
+
+install.packages("ggplot2")
+
+library(ggplot2)
+
+ggplot(vore_data, aes(x = reorder(category, -percentage.Freq), y = percentage.Freq, fill = category)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Proportion of Each Vore Category in msleep Dataset",
+       x = "Vore Category",
+       y = "Percentage (%)") +
+  theme_minimal()
+
+
+#p3
+omnivores_data <- msleep %>%
+  filter(vore == "omni")
+mean_sleep_total <- mean(omnivores_data$sleep_total, na.rm = TRUE)
+print(mean_sleep_total)
+
+#p4
+ggplot(msleep, aes(x = bodywt, y = brainwt)) +
+  geom_point() +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = "Scatterplot of Body Weight vs Brain Weight",
+       x = "Body Weight (log scale)",
+       y = "Brain Weight (log scale)") +
+  theme_minimal()
+
+
+#p5
+correlation <- cor(msleep$bodywt, msleep$brainwt, use = "complete.obs")
+print(correlation)
+
+
+#p6
+mean_sleep <- mean(msleep$sleep_total, na.rm = TRUE)
+sd_sleep <- sd(msleep$sleep_total, na.rm = TRUE)
+lower_threshold <- mean_sleep - 1.5 * sd_sleep
+upper_threshold <- mean_sleep + 1.5 * sd_sleep
+
+outliers <- msleep %>%
+  filter(sleep_total < lower_threshold | sleep_total > upper_threshold) %>%
+  select(name, sleep_total)
+print(outliers)

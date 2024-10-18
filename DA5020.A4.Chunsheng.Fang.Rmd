@@ -1,0 +1,178 @@
+---
+title: "DA5020.A4.Chunsheng.Fang"
+output: 
+  pdf_document: default
+  html_document: default
+date: "2024-09-25"
+---
+
+
+tripdata_df <- read_parquet("/Users/chunsheng/Desktop/2020_Green_Taxi_Trip_Data.csv", as_tibble = TRUE)
+
+
+# Bonus
+```{r}
+# Set CRAN repository mirror
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+# Install necessary packages if not already installed
+if(!require(readr)) install.packages("readr")
+if(!require(dplyr)) install.packages("dplyr")
+if(!require(ggplot2)) install.packages("ggplot2")
+
+# Load the necessary libraries
+library(readr)  # For reading CSV files
+library(dplyr)  # For data manipulation
+library(ggplot2)  # For plotting
+tripdata_df <- read_csv("/Users/chunsheng/Desktop/2020_Green_Taxi_Trip_Data.csv")
+
+# Bonus
+Most_trips <- tripdata_df %>%
+  mutate(lpep_pickup_date = as.Date(lpep_pickup_datetime, format = "%m/%d/%Y %H:%M")) %>%
+  group_by(lpep_pickup_date) %>%
+  filter(lpep_pickup_date >= '2020-02-01' & lpep_pickup_date <= '2020-02-29') %>%
+  summarise(trips_count =n()) %>%
+  arrange(desc(trips_count))
+
+Most_trips
+
+MostTrips <- ggplot(as.data.frame(Most_trips), aes(x= lpep_pickup_date, y = trips_count)) +
+  geom_col(position = 'dodge', fill = 'orange')
+
+MostTrips
+
+# The trips were high in the midweeks and was highest in the middle of the month
+
+```
+
+# Problem 1
+```{r}
+sapply(tripdata_df, class)
+# Converting the character datatype to factor
+tripdata_df$store_and_fwd_flag <- as.factor(tripdata_df$store_and_fwd_flag)
+# Converting the numeric datatype to factor
+tripdata_df$RatecodeID <- as.factor(tripdata_df$RatecodeID)
+# Converting the numeric datatype to factor
+tripdata_df$payment_type <- as.factor(tripdata_df$payment_type)
+# Store and Fwd flag, RatecodeID and Payment type are the three columns with categorical variables that has to be converted as factors as it is much easier to work with than characters
+```
+# Problem 2
+```{r}
+# Define mode function to calculate the most common value
+mode <- function(x) {
+  ux <- unique(x[!is.na(x)])  # Remove NA values from the calculation
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+# Replace null values in trip_type and payment_type with the mode of each column
+tripdata_df$trip_type[is.na(tripdata_df$trip_type)] <- mode(tripdata_df$trip_type)
+tripdata_df$payment_type[is.na(tripdata_df$payment_type)] <- mode(tripdata_df$payment_type)
+# Find the most common trip type (how people hail cabs)
+common_trip_type <- mode(tripdata_df$trip_type)
+common_trip_type
+
+# Find the most common payment type (how people pay for the trip)
+common_payment_type <- mode(tripdata_df$payment_type)
+common_payment_type
+# Plot for trip_type (how people hail cabs)
+triptype_plot <- ggplot(tripdata_df, aes(x = as.factor(trip_type))) +
+  geom_bar(fill = "orange") +
+  labs(title = "Distribution of Trip Type", x = "Trip Type", y = "Count") +
+  scale_x_discrete(labels = c("1" = "Street-hail", "2" = "Dispatch"))
+
+triptype_plot
+
+# Plot for payment_type (how people pay for trips)
+paymenttype_plot <- ggplot(tripdata_df, aes(x = as.factor(payment_type))) +
+  geom_bar(fill = "orange") +
+  labs(title = "Distribution of Payment Type", x = "Payment Type", y = "Count") +
+  scale_x_discrete(labels = c("1" = "Credit Card", "2" = "Cash", "3" = "No Charge", "4" = "Dispute", "5" = "Unknown", "6" = "Voided Trip"))
+
+paymenttype_plot
+
+### The trip has more of a street-hail cab which is automatically assigned based on the metered rate inuse than the dispatch which can be altered by the driver 
+### People pay more through credit card than other payment type
+```
+# Problem 3
+```{r}
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+# Install necessary packages if not already installed
+if(!require(readr)) install.packages("readr")
+if(!require(dplyr)) install.packages("dplyr")
+if(!require(ggplot2)) install.packages("ggplot2")
+if(!require(lubridate)) install.packages("lubridate")  # For working with dates
+
+# Load the necessary libraries
+library(readr)  # For reading CSV files
+library(dplyr)  # For data manipulation
+library(ggplot2)  # For plotting
+library(lubridate)  # For working with dates
+
+
+# Convert both datetime columns to Date format using lubridate
+tripdata_df$lpep_pickup_datetime <- lubridate::mdy_hms(tripdata_df$lpep_pickup_datetime)
+tripdata_df$lpep_dropoff_datetime <- lubridate::mdy_hms(tripdata_df$lpep_dropoff_datetime)
+
+# Create a new column for just the date (without time)
+tripdata_df$lpep_pickup_date <- as.Date(tripdata_df$lpep_pickup_datetime)
+tripdata_df$lpep_dropoff_date <- as.Date(tripdata_df$lpep_dropoff_datetime)
+
+# Find the day of the week using wday() from lubridate
+tripdata_df$weekday <- wday(tripdata_df$lpep_pickup_date, label = TRUE)
+
+# Count the frequency of pickups for each weekday within February 2020
+Pickupfreqweek <- tripdata_df %>%
+  filter(lpep_pickup_date >= '2020-02-01' & lpep_pickup_date <= '2020-02-29') %>%
+  count(weekday)
+
+# Display the result
+Pickupfreqweek
+
+# Count the frequency of pickups for each date
+Pickupfreqdate <- tripdata_df %>%
+filter(lpep_pickup_date >= '2020-02-01' & lpep_pickup_date <= '2020-02-29') %>%
+count(lpep_pickup_date)
+Pickupfreqdate
+
+# Plot frequency of pickup on weekdays
+Pickupfreqwk_plot <- ggplot(as.data.frame(Pickupfreqweek), aes(x= weekday, n)) +
+geom_col(position = 'dodge', fill = 'orange')
+Pickupfreqwk_plot
+
+# Plot frequency of pickup on dates
+Pickupfreq_plot <- ggplot(as.data.frame(Pickupfreqdate), aes(x= lpep_pickup_date, n)) +
+geom_col(position = 'dodge', fill = 'orange')
+Pickupfreq_plot
+
+### The frequency of pickup is more during mid february which is on Feb 15 and the frequency rises from weekday to weekends which can be concluded that pickups are more during weekends.
+
+```
+# Problem 4
+```{r}
+library(lubridate)
+HourOfDay <- function(a){
+# get hours
+hour(a)
+}
+HourOfDay("2020-01-31 21:17:54")
+```
+
+# Problem 5
+```{r}
+#Creating lpep pickup hour new column to fetch hours of pickuptime
+tripdata_df <- tripdata_df %>% mutate(lpep_pickup_hour = HourOfDay(lpep_pickup_datetime))
+```
+
+# Problem 6
+```{r}
+Median_tripdist <- tripdata_df %>%
+group_by(lpep_pickup_hour) %>%
+summarise(Median = median(trip_distance))
+Median_tripdist
+s <- ggplot(Median_tripdist , aes(x= lpep_pickup_hour, y=Median)) +
+geom_col(fill = "orange") 
+s
+#It can be inferred that median trip distance is higher during certain hours which is 5 and 6 hours of the day which is from morning, this could indicate that people are traveling longer distances during those times. Conversely, if the median trip distance is lower during certain hours, it could indicate that people are traveling shorter distances during those times.
+
+```
